@@ -8,6 +8,14 @@ open_transactions = []
 owner = "GregoryLarsen"
 
 
+def hash_block(block):
+    """Hashes a block and returns the hash value.
+    Args:
+        block: The block to be hashed.
+    """
+    return "-".join([str(val) for val in block.values()])
+
+
 def get_transaction_value():
     """Returns the transaction amount from the user input."""
     tx_recipient = input("Recipient name: ")
@@ -26,22 +34,18 @@ def add_transaction(recipient, sender=owner, amount=1.0):
     )
 
 
-def get_last_blockchain_value():
-    return blockchain[-1] if len(blockchain) > 0 else None
-
-
 def mine_block():
-    if not open_transactions:
-        return
+    """
+    1. Mines a new block from open_transactions and adds it to the blockchain
+    2. clears open_transactions
+    3. returns the new block
+    """
     last_block = blockchain[-1]
     # Convert the previous block's values to a concatenated string
-    previous_hash = ""
-    for value in last_block.values():
-        previous_hash += str(value)
-
+    previous_block_hashed = hash_block(last_block)
     block = {
-        "previous_hash": previous_hash,
-        "index": len(blockchain) + 1,
+        "previous_hash": previous_block_hashed,
+        "index": len(blockchain),
         "transactions": open_transactions[:],  # Create a copy of the transactions
     }
     blockchain.append(block)
@@ -51,8 +55,14 @@ def mine_block():
 
 def verify_chain():
     """Verifies the blockchain by checking if each block is valid."""
-    for i in range(1, len(blockchain)):
-        if blockchain[i].previous_hash != blockchain[i - 1].previous_hash:
+    for index in range(1, len(blockchain)):
+        block = blockchain[index]
+        previous_block = blockchain[index - 1]
+        recalculated_hash = hash_block(previous_block)
+        if block["previous_hash"] != recalculated_hash:
+            print(
+                f"ERROR! detected at block index:{index}\n\tprevious_hash: {block['previous_hash']} does not match previous block's recalculated_hash: {recalculated_hash}"
+            )
             return False
     return True
 
@@ -90,14 +100,20 @@ while waiting_for_input:
                     print(block)
         case "h":
             # h for hacking the first block - this is just an example
-            if len(blockchain) > 1:
-                blockchain[0] = [2]
+            if len(blockchain) > 0:
+                blockchain[0] = {
+                    "previous_hash": "",
+                    "index": 1,
+                    "transactions": [],
+                }
+            else:
+                print("No blocks to hack!")
         case "q":
             print("Quitting program...")
             waiting_for_input = False
         case _:  # Default case (like 'default' in other languages)
             print("\nInvalid choice!", end=" ")
 
-    # if not verify_chain():
-    #     print("Blockchain is invalid! Exiting...")
-    #     break
+    if not verify_chain():
+        print("Blockchain is invalid! Exiting...")
+        break
