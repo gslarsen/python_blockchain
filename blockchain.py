@@ -42,6 +42,11 @@ def get_balance(participant):
         for tx in block["transactions"]
         if tx["recipient"] == participant
     ]
+    # Should open transactions for the recipient also be considered?
+    # open_tx_recipient = [
+    #     tx["amount"] for tx in open_transactions if tx["recipient"] == participant
+    # ]
+    # tx_recipient.extend(open_tx_recipient)
     amount_received = sum(tx_recipient)
 
     return amount_received - amount_sent
