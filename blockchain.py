@@ -59,15 +59,6 @@ def get_transaction_value():
     return tx_recipient, tx_amount
 
 
-def verify_transaction(transaction):
-    """Verifies a transaction by checking if it is valid.
-    Args:
-        transaction: The transaction to be verified.
-    """
-    sender_balance = get_balance(transaction["sender"])
-    return sender_balance >= transaction["amount"]
-
-
 def add_transaction(recipient, sender=owner, amount=1.0):
     """Adds a new transaction to open_transactions.
     Args:
@@ -119,10 +110,24 @@ def verify_chain():
         recalculated_hash = hash_block(previous_block)
         if block["previous_hash"] != recalculated_hash:
             print(
-                f"ERROR! detected at block index:{index}\n\tprevious_hash: {block['previous_hash']} does not match previous block's recalculated_hash: {recalculated_hash}"
+                f"**** ERROR! detected at block index:{index} ****\n\tprevious_hash:\n\t{block['previous_hash']} \n\tdoes not match previous block's recalculated_hash:\n\t{recalculated_hash}"
             )
             return False
     return True
+
+
+def verify_transaction(transaction):
+    """Verifies a transaction by checking if it is valid.
+    Args:
+        transaction: The transaction to be verified.
+    """
+    sender_balance = get_balance(transaction["sender"])
+    return sender_balance >= transaction["amount"]
+
+
+def verify_transactions():
+    """Verifies all transactions in the open_transactions."""
+    return all(verify_transaction(tx) for tx in open_transactions)
 
 
 waiting_for_input = True
@@ -133,6 +138,7 @@ while waiting_for_input:
     print("\t2: Mine a new block")
     print("\t3: Print the blockchain blocks")
     print("\t4: Print participants")
+    print("\t5: Check transaction validity")
     print("\th: Change the last transaction value")
     print("\tq: Quit the program")
     user_choice = input("Your choice: ").lower()
@@ -140,12 +146,12 @@ while waiting_for_input:
     match user_choice:
         case "1":
             tx_data = get_transaction_value()
-            print(f"Transaction data: {tx_data}")
             recipient, amount = tx_data
-            if add_transaction(recipient=recipient, sender=owner, amount=amount):
+            print(f"Transaction data: {tx_data}")
+            if add_transaction(recipient=recipient, amount=amount):
                 print(f"Transaction added: {tx_data}")
             else:
-                print(f"Transaction failed! Insufficient balance for {owner}.")
+                print(f"**** Transaction failed! Insufficient balance for {owner}.")
             print(f"open_transactions:\n{open_transactions}")
         case "2":
             mined_block = mine_block()
@@ -153,21 +159,26 @@ while waiting_for_input:
                 print(f"Block mined: {mined_block}")
                 print(f"open_transactions: {open_transactions}")
             else:
-                print("No transactions to mine!")
+                print("**** No transactions to mine! ****")
         case "3":
             if len(blockchain) == 0:
-                print("no blocks yet!")
+                print("**** No blocks yet! ****")
             else:
                 print("The blocks in the blockchain are:")
                 for block in blockchain:
                     print(block)
         case "4":
             if len(participants) == 0:
-                print("No participants yet!")
+                print("**** No participants yet! ****")
             else:
                 print("The participants are:")
                 for participant in participants:
                     print(participant)
+        case "5":
+            if verify_transactions():
+                print("All transactions are valid!")
+            else:
+                print("**** Some transactions are invalid! ****")
         case "h":
             # h for hacking the first block - this is just an example
             if len(blockchain) > 0:
@@ -177,14 +188,14 @@ while waiting_for_input:
                     "transactions": [],
                 }
             else:
-                print("No blocks to hack!")
+                print("**** No blocks to hack! ****")
         case "q":
             print("Quitting program...")
             waiting_for_input = False
         case _:  # Default case (like 'default' in other languages)
-            print("\nInvalid choice!", end=" ")
+            print("\n**** Invalid choice! ****", end=" ")
 
     if not verify_chain():
-        print("Blockchain is invalid! Exiting...")
+        print("**** Blockchain is invalid! ****\nExiting...")
         break
     print(f"Balance of {owner}: {get_balance(owner)}")
