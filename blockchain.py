@@ -198,4 +198,4 @@ while waiting_for_input:
     if not verify_chain():
         print("**** Blockchain is invalid! ****\nExiting...")
         break
-    print(f"Balance of {owner}: {get_balance(owner)}")
+    print(f"Balance of {owner}: {get_balance(owner):.2f}")
