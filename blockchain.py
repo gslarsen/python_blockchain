@@ -1,9 +1,19 @@
+# this module implements a simple blockchain with basic transaction handling
+import hashlib
+import json
+from collections import OrderedDict
+
+# this print statement will only execute if this module is imported, not when run directly
+if __name__ != "__main__":
+    print("Running module:", __name__)
+
 MINING_REWARD = 10.0
 
 genesis_block = {
     "previous_hash": "",  # No previous hash for the genesis block
     "index": 0,
     "transactions": [],
+    "proof": 100,  # Proof of work for the genesis block
 }
 blockchain = [genesis_block]
 open_transactions = []
@@ -16,7 +26,36 @@ def hash_block(block):
     Args:
         block: The block to be hashed.
     """
-    return "-".join([str(val) for val in block.values()])
+    return hashlib.sha256(json.dumps(block, sort_keys=True).encode()).hexdigest()
+
+
+def valid_proof(transactions, last_hash, proof):
+    """Checks if the proof of work is valid.
+    Args:
+        transactions: The list of transactions in the block.
+        last_hash: The hash of the previous block.
+        proof: The proof of work to be validated.
+    Returns:
+        True if the proof is valid, False otherwise."""
+
+    guess = f"{transactions}{last_hash}{proof}".encode()
+    guess_hash = hashlib.sha256(guess).hexdigest()
+    print(f"Guess hash: {guess_hash}")
+    return guess_hash[:2] == "00"
+
+
+def proof_of_work():
+    """Generates a proof of work for the current block.
+    Returns:
+        A valid proof of work."""
+    last_block = blockchain[-1]
+    last_hash = hash_block(last_block)
+    print(f"Last block hash: {last_hash}")
+    proof = 0
+    while not valid_proof(open_transactions, last_hash, proof):
+        proof += 1
+    print(f"Proof found: {proof}")
+    return proof
 
 
 def get_balance(participant):
@@ -65,10 +104,9 @@ def add_transaction(recipient, sender=owner, amount=1.0):
         sender: sender of the coins.
         recipient: recipient of the coins.
         amount: The amount to be added (default 1.0)."""
-    if verify_transaction({"sender": sender, "recipient": recipient, "amount": amount}):
-        open_transactions.append(
-            {"sender": sender, "recipient": recipient, "amount": amount}
-        )
+    transaction = OrderedDict(sender=sender, recipient=recipient, amount=amount)
+    if verify_transaction(transaction):
+        open_transactions.append(transaction)
         participants.update([sender, recipient])
         return True
     return False
@@ -80,21 +118,26 @@ def mine_block():
     2. clears open_transactions
     3. returns the new block
     """
-    reward_transaction = {
-        "sender": "MINING",
-        "recipient": owner,
-        "amount": MINING_REWARD,
-    }
     last_block = blockchain[-1]
     # Convert the previous block's values to a concatenated string
     previous_block_hashed = hash_block(last_block)
-    # Create a copy of the transactions
+    proof = proof_of_work()
+    # Create a reward transaction for the miner
+    reward_transaction = OrderedDict(
+        sender="MINING",
+        recipient=owner,
+        amount=MINING_REWARD,
+    )
+    # Create a copy of the transactions to avoid modifying the original list
+    # This is important to ensure that the original open_transactions list remains unchanged
+    # until the block is successfully mined and added to the blockchain
     copied_transactions = open_transactions[:]
     copied_transactions.append(reward_transaction)
     block = {
         "previous_hash": previous_block_hashed,
         "index": len(blockchain),
         "transactions": copied_transactions,
+        "proof": proof,
     }
 
     blockchain.append(block)
@@ -110,7 +153,14 @@ def verify_chain():
         recalculated_hash = hash_block(previous_block)
         if block["previous_hash"] != recalculated_hash:
             print(
-                f"**** ERROR! detected at block index:{index} ****\n\tprevious_hash:\n\t{block['previous_hash']} \n\tdoes not match previous block's recalculated_hash:\n\t{recalculated_hash}"
+                f"**** ERROR! detected at block index:{index} ****\n\tprevious_hash:\n\t{block['previous_hash']} DOES NOT MATCH  previous block's\n\trecalculated_hash:\n\t{recalculated_hash}"
+            )
+            return False
+        if not valid_proof(
+            block["transactions"][:-1], block["previous_hash"], block["proof"]
+        ):
+            print(
+                f"**** ERROR! detected at block index:{index} ****\n\tBlock's proof:\n\t{block['proof']}\n\tBlock's transactions:\n\t{block['transactions']}"
             )
             return False
     return True
@@ -165,8 +215,8 @@ while waiting_for_input:
                 print("**** No blocks yet! ****")
             else:
                 print("The blocks in the blockchain are:")
-                for block in blockchain:
-                    print(block)
+                for idx, block in enumerate(blockchain, start=1):
+                    print(f"{idx}: {block}")
         case "4":
             if len(participants) == 0:
                 print("**** No participants yet! ****")
