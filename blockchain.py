@@ -1,7 +1,7 @@
 # this module implements a simple blockchain with basic transaction handling
-import hashlib
-import json
 from collections import OrderedDict
+
+from hash_util import hash_block, hash_string_sha256
 
 # this print statement will only execute if this module is imported, not when run directly
 if __name__ != "__main__":
@@ -21,14 +21,6 @@ owner = "GregoryLarsen"
 participants = {owner}
 
 
-def hash_block(block):
-    """Hashes a block and returns the hash value.
-    Args:
-        block: The block to be hashed.
-    """
-    return hashlib.sha256(json.dumps(block, sort_keys=True).encode()).hexdigest()
-
-
 def valid_proof(transactions, last_hash, proof):
     """Checks if the proof of work is valid.
     Args:
@@ -39,7 +31,7 @@ def valid_proof(transactions, last_hash, proof):
         True if the proof is valid, False otherwise."""
 
     guess = f"{transactions}{last_hash}{proof}".encode()
-    guess_hash = hashlib.sha256(guess).hexdigest()
+    guess_hash = hash_string_sha256(guess)
     print(f"Guess hash: {guess_hash}")
     return guess_hash[:2] == "00"
 
