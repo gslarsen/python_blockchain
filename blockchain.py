@@ -1,5 +1,6 @@
 # this module implements a simple blockchain with basic transaction handling
 from collections import OrderedDict
+import json
 
 from hash_util import hash_block, hash_string_sha256
 
@@ -21,6 +22,59 @@ owner = "GregoryLarsen"
 participants = {owner}
 
 
+def load_data():
+    """Loads the blockchain and open transactions from a file."""
+    global blockchain
+    global open_transactions
+    global participants
+    try:
+        with open("blockchain.txt", mode="r") as f:
+            blockchain = json.loads(f.readline())
+            blockchain = [
+                {
+                    "previous_hash": block["previous_hash"],
+                    "index": block["index"],
+                    "transactions": [
+                        OrderedDict(
+                            sender=tx["sender"],
+                            recipient=tx["recipient"],
+                            amount=tx["amount"],
+                        )
+                        for tx in block["transactions"]
+                    ],
+                    "proof": block["proof"],
+                }
+                for block in blockchain
+            ]
+            print("Blockchain loaded...")
+            open_transactions = json.loads(f.readline())
+            open_transactions = [
+                OrderedDict(
+                    sender=tx["sender"], recipient=tx["recipient"], amount=tx["amount"]
+                )
+                for tx in open_transactions
+            ]
+            print("Open transactions loaded...")
+            participants = set(json.loads(f.readline()))
+            print("Participants loaded...")
+    except FileNotFoundError:
+        print("File not found. Starting with a new blockchain.")
+    except Exception as e:
+        print("Error loading data:", e)
+
+
+# Load existing data if available
+load_data()
+
+
+def save_data():
+    """Saves the blockchain and open transactions to a file."""
+    with open("blockchain.txt", mode="w") as f:
+        f.write(json.dumps(blockchain) + "\n")
+        f.write(json.dumps(open_transactions) + "\n")
+        f.write(json.dumps(list(participants)))
+
+
 def valid_proof(transactions, last_hash, proof):
     """Checks if the proof of work is valid.
     Args:
@@ -32,7 +86,7 @@ def valid_proof(transactions, last_hash, proof):
 
     guess = f"{transactions}{last_hash}{proof}".encode()
     guess_hash = hash_string_sha256(guess)
-    print(f"Guess hash: {guess_hash}")
+    # print(f"Guess hash: {guess_hash}")
     return guess_hash[:2] == "00"
 
 
@@ -100,6 +154,7 @@ def add_transaction(recipient, sender=owner, amount=1.0):
     if verify_transaction(transaction):
         open_transactions.append(transaction)
         participants.update([sender, recipient])
+        save_data()
         return True
     return False
 
@@ -120,7 +175,7 @@ def mine_block():
         recipient=owner,
         amount=MINING_REWARD,
     )
-    # Create a copy of the transactions to avoid modifying the original list
+    # Create a copy of the open_transactions to avoid modifying the original list
     # This is important to ensure that the original open_transactions list remains unchanged
     # until the block is successfully mined and added to the blockchain
     copied_transactions = open_transactions[:]
@@ -134,6 +189,7 @@ def mine_block():
 
     blockchain.append(block)
     open_transactions.clear()
+    save_data()
     return block
 
 
@@ -216,6 +272,7 @@ while waiting_for_input:
                 print("The participants are:")
                 for participant in participants:
                     print(participant)
+                print()
         case "5":
             if verify_transactions():
                 print("All transactions are valid!")
@@ -240,4 +297,4 @@ while waiting_for_input:
     if not verify_chain():
         print("**** Blockchain is invalid! ****\nExiting...")
         break
-    print(f"Balance of {owner}: {get_balance(owner):.2f}")
+    print(f"\nBalance of {owner}: {get_balance(owner):.2f}")
