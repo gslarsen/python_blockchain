@@ -1,6 +1,7 @@
 # this module implements a simple blockchain with basic transaction handling
 from collections import OrderedDict
 import json
+import pickle
 
 from hash_util import hash_block, hash_string_sha256
 
@@ -20,6 +21,7 @@ blockchain = [genesis_block]
 open_transactions = []
 owner = "GregoryLarsen"
 participants = {owner}
+file_to_save = "blockchain.txt"
 
 
 def load_data():
@@ -28,7 +30,12 @@ def load_data():
     global open_transactions
     global participants
     try:
-        with open("blockchain.txt", mode="r") as f:
+        with open(file_to_save, mode="r") as f:
+            # data = pickle.load(f)  # binary safe
+            # blockchain = data.get("chain", [genesis_block])
+            # open_transactions = data.get("ot", [])
+            # participants = set(data.get("participants", [owner]))
+            # print("Data loaded.")
             blockchain = json.loads(f.readline())
             blockchain = [
                 {
@@ -59,8 +66,10 @@ def load_data():
             print("Participants loaded...")
     except FileNotFoundError:
         print("File not found. Starting with a new blockchain.")
+    # except (pickle.UnpicklingError, EOFError) as e:
+    #     print(f"Corrupt or incompatible pickle file ({e}). Starting fresh.")
     except Exception as e:
-        print("Error loading data:", e)
+        print("!Error loading data!:", e)
 
 
 # Load existing data if available
@@ -69,10 +78,19 @@ load_data()
 
 def save_data():
     """Saves the blockchain and open transactions to a file."""
-    with open("blockchain.txt", mode="w") as f:
-        f.write(json.dumps(blockchain) + "\n")
-        f.write(json.dumps(open_transactions) + "\n")
-        f.write(json.dumps(list(participants)))
+    try:
+        with open(file_to_save, mode="w") as f:
+            f.write(json.dumps(blockchain) + "\n")
+            f.write(json.dumps(open_transactions) + "\n")
+            f.write(json.dumps(list(participants)))
+            # save_data = {
+        #     "chain": blockchain,
+        #     "ot": open_transactions,
+        #     "participants": list(participants),
+        # }
+        # f.write(pickle.dumps(save_data))
+    except (IOError, OSError) as e:
+        print("!Error saving data!:", e)
 
 
 def valid_proof(transactions, last_hash, proof):
@@ -247,7 +265,7 @@ while waiting_for_input:
             recipient, amount = tx_data
             print(f"Transaction data: {tx_data}")
             if add_transaction(recipient=recipient, amount=amount):
-                print(f"Transaction added: {tx_data}")
+                print(f"Transaction added successfully.")
             else:
                 print(f"**** Transaction failed! Insufficient balance for {owner}.")
             print(f"open_transactions:\n{open_transactions}")
