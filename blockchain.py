@@ -11,13 +11,7 @@ if __name__ != "__main__":
 
 MINING_REWARD = 10.0
 
-genesis_block = {
-    "previous_hash": "",  # No previous hash for the genesis block
-    "index": 0,
-    "transactions": [],
-    "proof": 100,  # Proof of work for the genesis block
-}
-blockchain = [genesis_block]
+blockchain = []
 open_transactions = []
 owner = "GregoryLarsen"
 participants = {owner}
@@ -68,12 +62,21 @@ def load_data():
             print("Participants loaded...")
     except FileNotFoundError:
         print("File not found. Starting with a new blockchain.")
+        genesis_block = {
+            "previous_hash": "",  # No previous hash for the genesis block
+            "index": 0,
+            "transactions": [],
+            "proof": 100,  # Proof of work for the genesis block
+        }
+        blockchain = [genesis_block]
     # region: Alternative load method using pickle
     # except (pickle.UnpicklingError, EOFError) as e:
     #     print(f"Corrupt or incompatible pickle file ({e}). Starting fresh.")
     # endregion
     except Exception as e:
         print("!Error loading data!:", e)
+    finally:
+        print("load_data completed.")
 
 
 # Load existing data if available
