@@ -31,11 +31,13 @@ def load_data():
     global participants
     try:
         with open(file_to_save, mode="r") as f:
+            # region: Alternative load method using pickle
             # data = pickle.load(f)  # binary safe
             # blockchain = data.get("chain", [genesis_block])
             # open_transactions = data.get("ot", [])
             # participants = set(data.get("participants", [owner]))
             # print("Data loaded.")
+            # endregion
             blockchain = json.loads(f.readline())
             blockchain = [
                 {
@@ -66,8 +68,10 @@ def load_data():
             print("Participants loaded...")
     except FileNotFoundError:
         print("File not found. Starting with a new blockchain.")
+    # region: Alternative load method using pickle
     # except (pickle.UnpicklingError, EOFError) as e:
     #     print(f"Corrupt or incompatible pickle file ({e}). Starting fresh.")
+    # endregion
     except Exception as e:
         print("!Error loading data!:", e)
 
@@ -83,12 +87,14 @@ def save_data():
             f.write(json.dumps(blockchain) + "\n")
             f.write(json.dumps(open_transactions) + "\n")
             f.write(json.dumps(list(participants)))
+            # region: Alternative save method using pickle
             # save_data = {
-        #     "chain": blockchain,
-        #     "ot": open_transactions,
-        #     "participants": list(participants),
-        # }
-        # f.write(pickle.dumps(save_data))
+            #     "chain": blockchain,
+            #     "ot": open_transactions,
+            #     "participants": list(participants),
+            # }
+            # f.write(pickle.dumps(save_data))
+            # endregion
     except (IOError, OSError) as e:
         print("!Error saving data!:", e)
 
@@ -104,7 +110,6 @@ def valid_proof(transactions, last_hash, proof):
 
     guess = f"{transactions}{last_hash}{proof}".encode()
     guess_hash = hash_string_sha256(guess)
-    # print(f"Guess hash: {guess_hash}")
     return guess_hash[:2] == "00"
 
 
@@ -114,11 +119,9 @@ def proof_of_work():
         A valid proof of work."""
     last_block = blockchain[-1]
     last_hash = hash_block(last_block)
-    print(f"Last block hash: {last_hash}")
     proof = 0
     while not valid_proof(open_transactions, last_hash, proof):
         proof += 1
-    print(f"Proof found: {proof}")
     return proof
 
 
@@ -145,11 +148,13 @@ def get_balance(participant):
         for tx in block["transactions"]
         if tx["recipient"] == participant
     ]
+    # region: Uncomment the following lines if you want to consider open transactions for the recipient
     # Should open transactions for the recipient also be considered?
     # open_tx_recipient = [
     #     tx["amount"] for tx in open_transactions if tx["recipient"] == participant
     # ]
     # tx_recipient.extend(open_tx_recipient)
+    # endregion
     amount_received = sum(tx_recipient)
 
     return amount_received - amount_sent
@@ -193,9 +198,10 @@ def mine_block():
         recipient=owner,
         amount=MINING_REWARD,
     )
-    # Create a copy of the open_transactions to avoid modifying the original list
+    # region: Create a copy of the open_transactions to avoid modifying the original list
     # This is important to ensure that the original open_transactions list remains unchanged
     # until the block is successfully mined and added to the blockchain
+    # endregion
     copied_transactions = open_transactions[:]
     copied_transactions.append(reward_transaction)
     block = {
