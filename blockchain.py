@@ -73,10 +73,14 @@ def load_data():
     # except (pickle.UnpicklingError, EOFError) as e:
     #     print(f"Corrupt or incompatible pickle file ({e}). Starting fresh.")
     # endregion
+    except json.JSONDecodeError as e:
+        print(
+            f"!file is empty or contains value that is not valid JSON!:\n{type(e).__name__}({e})"
+        )
     except Exception as e:
-        print("!Error loading data!:", e)
+        print(f"!Error loading data!: {type(e).__name__}({e})")
     finally:
-        print("load_data completed.")
+        print("\ncleanup load_data completed.")
 
 
 # Load existing data if available
@@ -99,7 +103,7 @@ def save_data():
             # f.write(pickle.dumps(save_data))
             # endregion
     except (IOError, OSError) as e:
-        print("!Error saving data!:", e)
+        print(f"!Error saving data!: {type(e).__name__}({e})")
 
 
 def valid_proof(transactions, last_hash, proof):
