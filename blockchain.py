@@ -2,6 +2,7 @@
 from collections import OrderedDict
 import json
 import pickle
+from pathlib import Path
 
 from hash_util import hash_block, hash_string_sha256
 
@@ -15,7 +16,7 @@ blockchain = []
 open_transactions = []
 owner = "GregoryLarsen"
 participants = {owner}
-file_to_save = "blockchain.txt"
+file_to_save = Path(__file__).with_name("blockchain.txt")
 
 
 def load_data():
