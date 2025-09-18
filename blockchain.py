@@ -1,6 +1,7 @@
 # this module implements a simple blockchain with basic transaction handling
 from collections import OrderedDict
 import json
+from pathlib import Path
 
 # import pickle
 
